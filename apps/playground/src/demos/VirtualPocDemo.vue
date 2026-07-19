@@ -9,11 +9,15 @@ function buildMatrix(rowN: number, colN: number) {
   const data: Record<string, unknown>[] = []
   for (let r = 0; r < rowN; r++) rows.push(`R${r}`)
   for (let c = 0; c < colN; c++) cols.push(`C${c}`)
-  // sparse-ish records: one value per row/col pair sample
-  for (let r = 0; r < rowN; r++) {
-    for (let c = 0; c < Math.min(colN, 20); c++) {
+  // Ensure every row/col leaf exists while keeping record count manageable:
+  // full first 3 rows across all cols + diagonal-ish samples for remaining rows.
+  for (let c = 0; c < colN; c++) {
+    for (let r = 0; r < Math.min(rowN, 3); r++) {
       data.push({ row: rows[r], col: cols[c], value: (r * 17 + c * 3) % 997 })
     }
+  }
+  for (let r = 3; r < rowN; r++) {
+    data.push({ row: rows[r], col: cols[r % colN], value: (r * 17) % 997 })
   }
   return { rows, cols, data }
 }

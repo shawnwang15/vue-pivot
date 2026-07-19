@@ -7,7 +7,7 @@ const dataCfg = fromS2DataCfg(s2DataCfg)
 const options = fromS2Options(s2Options)
 ```
 
-对照表见 [`docs/capability-matrix.md`](../../../docs/capability-matrix.md)。
+对照表见 [Capability matrix](./capability-matrix.md)。
 
 差异：
 

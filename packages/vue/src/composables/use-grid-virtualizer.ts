@@ -38,7 +38,7 @@ export function useGridVirtualizer(opts: GridVirtualizerOptions): GridVirtualize
       getScrollElement: () => opts.scrollElement.value,
       estimateSize: () => opts.rowHeight ?? 32,
       overscan: adaptiveOverscan.value,
-      initialOffset: 0,
+      initialRect: { width: 800, height: 480 },
     })),
   )
 
@@ -47,8 +47,9 @@ export function useGridVirtualizer(opts: GridVirtualizerOptions): GridVirtualize
       horizontal: true,
       count: opts.columnCount.value,
       getScrollElement: () => opts.scrollElement.value,
-      estimateSize: (i) => opts.getColumnWidth(i),
+      estimateSize: (i: number) => opts.getColumnWidth(i),
       overscan: adaptiveOverscan.value,
+      initialRect: { width: 800, height: 480 },
     })),
   )
 

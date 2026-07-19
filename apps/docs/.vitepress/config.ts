@@ -19,6 +19,8 @@ export default defineConfig({
           { text: 'Customization', link: '/guide/customization' },
           { text: 'Performance', link: '/guide/performance' },
           { text: 'Migration from S2', link: '/guide/migration-from-s2' },
+          { text: 'Capability Matrix', link: '/guide/capability-matrix' },
+          { text: 'Performance Baseline', link: '/guide/performance-baseline' },
         ],
       },
       {

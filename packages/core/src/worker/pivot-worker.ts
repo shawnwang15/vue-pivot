@@ -2,6 +2,7 @@ import type { PivotQuery, PivotResult } from '../types/pivot-query'
 import type { PivotRecord } from '../types/data-cfg'
 import type { AggregatorId } from '../types/data-cfg'
 import { listAggregators } from '../engine/aggregator'
+import { LocalDataSource } from '../datasource/pivot-data-source'
 
 /**
  * Structured-clone safe worker request.
@@ -51,7 +52,6 @@ export async function handleWorkerRequest(
   signal?: AbortSignal,
 ): Promise<WorkerPivotResponse> {
   try {
-    const { LocalDataSource } = await import('../datasource/pivot-data-source')
     const ds = new LocalDataSource(req.records)
     const abort = signal ?? new AbortController().signal
     const result = await ds.query(req.query, abort)

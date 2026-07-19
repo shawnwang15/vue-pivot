@@ -78,20 +78,33 @@ const headerLevels = computed(() => {
 
 const headerHeight = computed(() => Math.max(1, headerLevels.value.length) * rowHeight.value)
 
-const virtualRows = computed(() =>
-  grid.rowVirtualizer.value.getVirtualItems().map((i) => ({
-    index: i.index,
-    start: i.start,
-    size: i.size,
-  })),
-)
-const virtualCols = computed(() =>
-  grid.colVirtualizer.value.getVirtualItems().map((i) => ({
-    index: i.index,
-    start: i.start,
-    size: i.size,
-  })),
-)
+const virtualRows = computed(() => {
+  const items = grid.rowVirtualizer.value.getVirtualItems()
+  if (items.length) {
+    return items.map((i) => ({ index: i.index, start: i.start, size: i.size }))
+  }
+  // Fallback before scroll element measurement settles
+  const h = rowHeight.value
+  const count = Math.min(rowCount.value, 24)
+  return Array.from({ length: count }, (_, index) => ({
+    index,
+    start: index * h,
+    size: h,
+  }))
+})
+const virtualCols = computed(() => {
+  const items = grid.colVirtualizer.value.getVirtualItems()
+  if (items.length) {
+    return items.map((i) => ({ index: i.index, start: i.start, size: i.size }))
+  }
+  const cols = viewport.value.getColumns()
+  let start = 0
+  return cols.slice(0, Math.min(cols.length, 16)).map((c, index) => {
+    const item = { index, start, size: c.width }
+    start += c.width
+    return item
+  })
+})
 
 const nonVirtual = computed(() => rowCount.value * columnCount.value <= 400)
 
@@ -162,8 +175,25 @@ const onScroll = (e: Event) => {
 }
 
 const setScrollEl = (comp: unknown) => {
-  const c = comp as { el?: { value?: HTMLElement | null } } | null
-  scrollEl.value = c?.el?.value ?? null
+  if (!comp) {
+    scrollEl.value = null
+    return
+  }
+  if (comp instanceof HTMLElement) {
+    scrollEl.value = comp
+    return
+  }
+  const c = comp as { el?: HTMLElement | { value?: HTMLElement | null } | null; $el?: HTMLElement }
+  const exposed = c.el
+  if (exposed instanceof HTMLElement) {
+    scrollEl.value = exposed
+    return
+  }
+  if (exposed && typeof exposed === 'object' && 'value' in exposed) {
+    scrollEl.value = exposed.value ?? null
+    return
+  }
+  scrollEl.value = c.$el ?? null
 }
 
 defineExpose({

@@ -19,3 +19,7 @@ pnpm-debug.log*
 *.swp
 *.swo
 .qoder/
+
+# Accidental declaration emit in src
+packages/**/src/**/*.d.ts
+packages/**/src/**/*.d.ts.map

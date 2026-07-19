@@ -5,7 +5,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['packages/**/src/**/*.{test,spec}.ts', 'packages/**/__tests__/**/*.{test,spec}.ts'],
+    include: [
+      'packages/**/src/**/*.{test,spec}.ts',
+      'packages/**/__tests__/**/*.{test,spec}.ts',
+    ],
+    benchmark: {
+      include: ['benchmarks/**/*.bench.ts'],
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
