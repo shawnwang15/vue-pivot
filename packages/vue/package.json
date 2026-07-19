@@ -1,0 +1,50 @@
+{
+  "name": "@vue-pivot/vue",
+  "version": "0.1.0",
+  "description": "Vue pivot sheet components with DOM virtualization",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./style.css": "./dist/vue-pivot.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && vue-tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "typecheck": "vue-tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@tanstack/vue-table": "^8.21.0",
+    "@tanstack/vue-virtual": "^3.13.0",
+    "vue": "^3.5.0"
+  },
+  "dependencies": {
+    "@vue-pivot/core": "workspace:*",
+    "@vue-pivot/table": "workspace:*"
+  },
+  "devDependencies": {
+    "@tanstack/vue-table": "^8.21.3",
+    "@tanstack/vue-virtual": "^3.13.12",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4",
+    "vue": "^3.5.17",
+    "vue-tsc": "^2.2.10"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

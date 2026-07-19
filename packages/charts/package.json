@@ -1,0 +1,47 @@
+{
+  "name": "@vue-pivot/charts",
+  "version": "0.1.0",
+  "description": "ECharts adapters for vue-pivot sparklines and pivot charts",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "echarts": "^5.5.0",
+    "vue": "^3.5.0"
+  },
+  "peerDependenciesMeta": {
+    "echarts": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@vue-pivot/core": "workspace:*"
+  },
+  "devDependencies": {
+    "echarts": "^5.6.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4",
+    "vue": "^3.5.17"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
