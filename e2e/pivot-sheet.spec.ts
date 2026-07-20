@@ -51,4 +51,22 @@ test.describe('PivotSheet', () => {
       await page.mouse.up()
     }
   })
+
+  test('aggregated demo loads authoritative cells and totals', async ({ page }) => {
+    await page.goto('/aggregated')
+    await expect(page.getByText('Aggregated dataKind demo')).toBeVisible()
+    await expect(page.getByText('/mock/aggregated-superstore.json')).toBeVisible()
+    const grid = page.locator('[role="grid"]')
+    await expect(grid).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.vp-data-grid .vp-cell').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.vp-row-header, .vp-row-cell').filter({ hasText: 'Total' }).first()).toBeVisible()
+  })
+
+  test('aggregated demo can hide totals via checkbox', async ({ page }) => {
+    await page.goto('/aggregated')
+    await expect(page.locator('.vp-data-grid .vp-cell').first()).toBeVisible({ timeout: 5000 })
+    await page.getByLabel('Request row/column totals').uncheck()
+    await page.waitForTimeout(400)
+    await expect(page.locator('.vp-data-grid .vp-cell').first()).toBeVisible()
+  })
 })

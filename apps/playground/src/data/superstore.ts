@@ -1,4 +1,5 @@
 export interface SuperstoreRecord {
+  [key: string]: unknown
   province: string
   city: string
   type: string

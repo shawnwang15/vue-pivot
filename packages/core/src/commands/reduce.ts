@@ -1,13 +1,53 @@
 import type { PivotCommand } from '../types/pivot-command'
 import type { PivotState } from '../state/pivot-state'
-import { normalizeMeasures } from '../types/data-cfg'
+import { getDataKind, normalizeMeasures } from '../types/data-cfg'
 import { normalizeRange } from '../types/selection'
 import { setExpanded } from '../engine/dim-tree'
 import { invalidateCube } from '../engine/cube'
+import { createServerCellStore } from '../engine/server-result'
+import { createDimTree } from '../engine/dim-tree'
+import { createCube } from '../engine/cube'
 
 export interface ReduceResult {
   state: PivotState
   invalidate: 'all' | 'cube' | 'layout' | 'selection' | 'none'
+  /** Aggregated mode: query contract changed; do not rebuild from stale cells */
+  remoteRefresh?: boolean
+}
+
+function isAggregated(state: PivotState): boolean {
+  return getDataKind(state.dataCfg) === 'aggregated'
+}
+
+/** Clear authoritative cells when the query contract changes under aggregated mode */
+function clearAggregatedResult(state: PivotState): PivotState {
+  return {
+    ...state,
+    dataCfg:
+      state.dataCfg.dataKind === 'aggregated'
+        ? { ...state.dataCfg, data: [], totals: undefined, subTotals: undefined }
+        : state.dataCfg,
+    records: [],
+    rowTree: createDimTree(),
+    colTree: createDimTree(),
+    cube: createCube(),
+    serverCells: createServerCellStore(),
+    status: 'stale',
+    error: null,
+  }
+}
+
+function bumpQuery(state: PivotState, patch: Partial<PivotState>): PivotState {
+  const next = {
+    ...state,
+    ...patch,
+    version: state.version + 1,
+    queryVersion: state.queryVersion + 1,
+  }
+  if (isAggregated(state)) {
+    return clearAggregatedResult(next)
+  }
+  return next
 }
 
 export function reducePivotState(state: PivotState, command: PivotCommand): ReduceResult {
@@ -20,21 +60,59 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
         measures: normalizeMeasures(command.dataCfg.fields.values ?? []),
         version: state.version + 1,
         queryVersion: state.queryVersion + 1,
+        status: 'idle',
+        error: null,
       }
       return { state: next, invalidate: 'all' }
     }
     case 'setOptions': {
+      const mergedOptions = { ...state.options, ...command.options }
+      const nextSort = command.options.sort ?? state.sort
+      const nextFilters = command.options.filters ?? state.filters
+      const nextTopN = command.options.topN ?? state.topN
+      const queryAffecting =
+        JSON.stringify({
+          hierarchyType: state.options.hierarchyType,
+          defaultExpandDepth: state.options.defaultExpandDepth,
+          totals: state.options.totals,
+          asyncExpand: state.options.asyncExpand,
+          derivedMeasures: state.options.derivedMeasures,
+          sort: state.sort,
+          filters: state.filters,
+          topN: state.topN,
+        }) !==
+        JSON.stringify({
+          hierarchyType: mergedOptions.hierarchyType,
+          defaultExpandDepth: mergedOptions.defaultExpandDepth,
+          totals: mergedOptions.totals,
+          asyncExpand: mergedOptions.asyncExpand,
+          derivedMeasures: mergedOptions.derivedMeasures,
+          sort: nextSort,
+          filters: nextFilters,
+          topN: nextTopN,
+        })
+
+      if (isAggregated(state) && queryAffecting) {
+        const next = bumpQuery(state, {
+          options: mergedOptions,
+          sort: nextSort,
+          filters: nextFilters,
+          topN: nextTopN,
+        })
+        return { state: next, invalidate: 'all', remoteRefresh: true }
+      }
+
       return {
         state: {
           ...state,
-          options: { ...state.options, ...command.options },
-          sort: command.options.sort ?? state.sort,
-          filters: command.options.filters ?? state.filters,
-          topN: command.options.topN ?? state.topN,
+          options: mergedOptions,
+          sort: nextSort,
+          filters: nextFilters,
+          topN: nextTopN,
           version: state.version + 1,
-          queryVersion: state.queryVersion + 1,
+          queryVersion: queryAffecting ? state.queryVersion + 1 : state.queryVersion,
         },
-        invalidate: 'all',
+        invalidate: queryAffecting ? 'all' : 'layout',
       }
     }
     case 'expand': {
@@ -67,45 +145,32 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
       }
     }
     case 'setExpandDepth': {
-      return {
-        state: {
-          ...state,
-          options: {
-            ...state.options,
-            defaultExpandDepth: command.depth,
-            style: {
-              ...state.options.style,
-              ...(command.axis === 'row'
-                ? { rowCell: { ...state.options.style?.rowCell, expandDepth: command.depth } }
-                : { colCell: { ...state.options.style?.colCell, expandDepth: command.depth } }),
-            },
+      const next = bumpQuery(state, {
+        options: {
+          ...state.options,
+          defaultExpandDepth: command.depth,
+          style: {
+            ...state.options.style,
+            ...(command.axis === 'row'
+              ? { rowCell: { ...state.options.style?.rowCell, expandDepth: command.depth } }
+              : { colCell: { ...state.options.style?.colCell, expandDepth: command.depth } }),
           },
-          version: state.version + 1,
-          queryVersion: state.queryVersion + 1,
         },
-        invalidate: 'all',
-      }
+      })
+      return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
     }
-    case 'sort':
-      return {
-        state: { ...state, sort: command.sort, version: state.version + 1, queryVersion: state.queryVersion + 1 },
-        invalidate: 'all',
-      }
-    case 'filter':
-      return {
-        state: {
-          ...state,
-          filters: command.filters,
-          version: state.version + 1,
-          queryVersion: state.queryVersion + 1,
-        },
-        invalidate: 'all',
-      }
-    case 'topN':
-      return {
-        state: { ...state, topN: command.topN, version: state.version + 1, queryVersion: state.queryVersion + 1 },
-        invalidate: 'all',
-      }
+    case 'sort': {
+      const next = bumpQuery(state, { sort: command.sort })
+      return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
+    }
+    case 'filter': {
+      const next = bumpQuery(state, { filters: command.filters })
+      return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
+    }
+    case 'topN': {
+      const next = bumpQuery(state, { topN: command.topN })
+      return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
+    }
     case 'moveField': {
       const fields = {
         rows: [...(state.dataCfg.fields.rows ?? [])],
@@ -139,17 +204,13 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
           ? state.filters.filter((f) => f.field !== command.field)
           : state.filters
 
-      return {
-        state: {
-          ...state,
-          dataCfg: { ...state.dataCfg, fields },
-          measures: normalizeMeasures(fields.values),
-          filters: nextFilters,
-          version: state.version + 1,
-          queryVersion: state.queryVersion + 1,
-        },
-        invalidate: 'all',
-      }
+      const nextCfg = { ...state.dataCfg, fields }
+      const next = bumpQuery(state, {
+        dataCfg: nextCfg,
+        measures: normalizeMeasures(fields.values),
+        filters: nextFilters,
+      })
+      return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
     }
     case 'setMeasureAggregation': {
       const values = [...(state.dataCfg.fields.values ?? [])]
@@ -162,16 +223,11 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
           : { ...current, aggregation: command.aggregation }
       values[idx] = nextMeasure
       const fields = { ...state.dataCfg.fields, values }
-      return {
-        state: {
-          ...state,
-          dataCfg: { ...state.dataCfg, fields },
-          measures: normalizeMeasures(values),
-          version: state.version + 1,
-          queryVersion: state.queryVersion + 1,
-        },
-        invalidate: 'all',
-      }
+      const next = bumpQuery(state, {
+        dataCfg: { ...state.dataCfg, fields },
+        measures: normalizeMeasures(values),
+      })
+      return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
     }
     case 'resizeColumn': {
       const widths = new Map(state.columnUI.widths)
@@ -265,6 +321,14 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
         },
         invalidate: 'none',
       }
+    case 'markStale': {
+      if (!isAggregated(state)) return { state, invalidate: 'none' }
+      return {
+        state: clearAggregatedResult({ ...state, version: state.version + 1, queryVersion: state.queryVersion + 1 }),
+        invalidate: 'all',
+        remoteRefresh: true,
+      }
+    }
     default:
       return { state, invalidate: 'none' }
   }

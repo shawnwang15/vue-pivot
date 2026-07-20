@@ -24,6 +24,8 @@ export type PivotCommand =
   | { type: 'rollUp'; axis: 'row' | 'column'; path: string[] }
   | { type: 'invalidate'; scope: InvalidateScope }
   | { type: 'setViewport'; rowStart: number; colStart: number }
+  /** Mark query contract changed; consumer should refresh aggregated data */
+  | { type: 'markStale' }
 
 export type FieldZone = 'rows' | 'columns' | 'values' | 'filters' | 'available'
 

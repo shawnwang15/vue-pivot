@@ -23,6 +23,7 @@ export interface S2LikeOptions {
 
 export function fromS2DataCfg(s2: S2LikeDataCfg): DataCfg {
   return {
+    dataKind: 'raw',
     fields: {
       rows: [...(s2.fields?.rows ?? [])],
       columns: [...(s2.fields?.columns ?? [])],
@@ -34,7 +35,7 @@ export function fromS2DataCfg(s2: S2LikeDataCfg): DataCfg {
       name: m.name,
       formatter: m.formatter,
     })),
-    data: (s2.data ?? []) as DataCfg['data'],
+    data: s2.data ?? [],
   }
 }
 

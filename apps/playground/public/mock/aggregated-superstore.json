@@ -1,0 +1,94 @@
+{
+  "fields": {
+    "rows": ["region", "category"],
+    "columns": ["segment"],
+    "values": [
+      { "field": "sales", "aggregation": "sum" },
+      { "field": "profit", "aggregation": "sum" }
+    ],
+    "valueInCols": true,
+    "filters": ["region"]
+  },
+  "meta": [
+    { "field": "sales", "name": "Sales" },
+    { "field": "profit", "name": "Profit" },
+    { "field": "region", "name": "Region" },
+    { "field": "category", "name": "Category" },
+    { "field": "segment", "name": "Segment" }
+  ],
+  "fieldValues": {
+    "region": ["East", "West"],
+    "category": ["Furniture", "Office", "Technology"],
+    "segment": ["Consumer", "Corporate", "Home Office"]
+  },
+  "aggregateWithTotals": {
+    "shape": "wide",
+    "sparse": true,
+    "totals": {
+      "row": { "grandTotal": true, "subTotals": ["category"] },
+      "column": { "grandTotal": true }
+    }
+  },
+  "aggregateWithoutTotals": {
+    "shape": "wide",
+    "sparse": true
+  },
+  "data": [
+    {
+      "region": "East",
+      "category": "Furniture",
+      "segment": "Consumer",
+      "sales": 1200,
+      "profit": 180
+    },
+    {
+      "region": "East",
+      "category": "Furniture",
+      "segment": "Corporate",
+      "sales": 800,
+      "profit": 90
+    },
+    {
+      "region": "East",
+      "category": "Office",
+      "segment": "Consumer",
+      "sales": 400,
+      "profit": 40
+    },
+    {
+      "region": "West",
+      "category": "Furniture",
+      "segment": "Consumer",
+      "sales": 1500,
+      "profit": 220
+    },
+    {
+      "region": "West",
+      "category": "Technology",
+      "segment": "Home Office",
+      "sales": 2100,
+      "profit": 510
+    }
+  ],
+  "subTotals": [
+    {
+      "region": "East",
+      "segment": "Consumer",
+      "sales": 1600,
+      "profit": 220,
+      "subTotalOn": "category",
+      "subTotalAxis": "row"
+    }
+  ],
+  "totals": [
+    {
+      "segment": "Consumer",
+      "sales": 3100,
+      "profit": 440
+    },
+    {
+      "sales": 6000,
+      "profit": 1040
+    }
+  ]
+}

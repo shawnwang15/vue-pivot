@@ -1,5 +1,5 @@
 import type { DataCfg, MeasureField, PivotRecord } from '../types/data-cfg'
-import { normalizeMeasures } from '../types/data-cfg'
+import { getDataKind, normalizeMeasures } from '../types/data-cfg'
 import type { FilterSpec, PivotOptions, SortSpec, TopNSpec } from '../types/options'
 import type { SelectionRange } from '../types/selection'
 import type { QueryStatus } from '../types/pivot-query'
@@ -7,6 +7,8 @@ import type { DimTree } from '../engine/dim-tree'
 import { createDimTree } from '../engine/dim-tree'
 import type { LazyCube } from '../engine/cube'
 import { createCube } from '../engine/cube'
+import type { ServerCellStore } from '../engine/server-result'
+import { createServerCellStore } from '../engine/server-result'
 
 export interface ColumnUIState {
   widths: Map<string, number>
@@ -25,6 +27,8 @@ export interface PivotState {
   rowTree: DimTree
   colTree: DimTree
   cube: LazyCube
+  /** Authoritative cell index for aggregated dataKind */
+  serverCells: ServerCellStore
   sort: SortSpec[]
   filters: FilterSpec[]
   topN: TopNSpec[]
@@ -56,6 +60,7 @@ export function createInitialState(
     rowTree: createDimTree(),
     colTree: createDimTree(),
     cube: createCube(),
+    serverCells: createServerCellStore(),
     sort: options.sort ?? [],
     filters: options.filters ?? [],
     topN: options.topN ?? [],
@@ -68,7 +73,7 @@ export function createInitialState(
       order: [],
       pinned: new Map(),
     },
-    status: 'idle',
+    status: getDataKind(dataCfg) === 'aggregated' && !(dataCfg.data?.length) ? 'idle' : 'idle',
     error: null,
     loadingQueryId: null,
     viewportCursor: { rowStart: 0, colStart: 0 },

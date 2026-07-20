@@ -33,6 +33,15 @@ export const DEFAULT_CAPABILITIES: DataSourceCapabilities = {
   supportedAggregators: ['sum', 'avg', 'count', 'min', 'max', 'distinctCount'],
 }
 
+/** Capabilities for authoritative aggregated backends */
+export const AGGREGATED_CAPABILITIES: DataSourceCapabilities = {
+  ...DEFAULT_CAPABILITIES,
+  serverAggregation: true,
+  topN: true,
+  totals: true,
+  asyncExpand: false,
+}
+
 export class LocalDataSource implements PivotDataSource {
   constructor(private records: PivotRecord[]) {}
 
@@ -109,8 +118,7 @@ export class ServerDataSource implements PivotDataSource {
 
   capabilities(): DataSourceCapabilities {
     return {
-      ...DEFAULT_CAPABILITIES,
-      serverAggregation: true,
+      ...AGGREGATED_CAPABILITIES,
       drill: true,
       asyncExpand: true,
       ...this.caps,

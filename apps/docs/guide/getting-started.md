@@ -42,6 +42,12 @@ const options = {
 </template>
 ```
 
+## 配置说明
+
+- 数据与字段布局：[`DataCfg`](/api/data-cfg)（明细 `raw` / 权威交叉 `aggregated`）
+- 展示与交互：[`PivotOptions`](/api/options)（层级、合计、排序筛选、样式等）
+- 组件 Props / 事件：[`PivotSheet`](/api/pivot-sheet)
+
 ## 注意
 
 - **首期不支持 SSR**：请在客户端挂载（如 Nuxt 使用 `<ClientOnly>`）。

@@ -1,6 +1,6 @@
 import type { PivotState } from '../state/pivot-state'
 import type { PivotQuery } from '../types/pivot-query'
-import { normalizeMeasures } from '../types/data-cfg'
+import { getDataKind, normalizeMeasures } from '../types/data-cfg'
 
 let querySeq = 0
 
@@ -15,6 +15,7 @@ export function buildPivotQuery(state: PivotState, viewport?: PivotQuery['viewpo
   const filters = state.filters
   return {
     queryId: nextQueryId(),
+    dataKind: getDataKind(state.dataCfg),
     axes: {
       rows: [...(fields.rows ?? [])],
       columns: [...(fields.columns ?? [])],

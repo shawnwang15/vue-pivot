@@ -1,6 +1,6 @@
 import type { ColumnLayout, PivotCell, PivotWindow, RowLayout } from '../types/layout'
 import type { ViewportRange } from '../types/pivot-query'
-import type { MeasureField } from '../types/data-cfg'
+import type { DataKind, MeasureField } from '../types/data-cfg'
 import type { DimTree } from '../engine/dim-tree'
 import { getVisibleLeaves } from '../engine/dim-tree'
 import type { LazyCube } from '../engine/cube'
@@ -11,11 +11,15 @@ import { formatValue, getFieldMeta } from '../engine/format'
 import type { DataCfg } from '../types/data-cfg'
 import { applyPostFilters } from '../engine/filter-sort'
 import type { FilterSpec } from '../types/options'
+import type { ServerCellStore } from '../engine/server-result'
+import { getServerCellValue } from '../engine/server-result'
 
 export interface ViewportContext {
   rowTree: DimTree
   colTree: DimTree
   cube: LazyCube
+  serverCells: ServerCellStore
+  dataKind: DataKind
   records: PivotRecord[]
   measures: MeasureField[]
   valueInCols: boolean
@@ -191,22 +195,30 @@ export function createPivotViewport(ctx: ViewportContext): PivotViewport {
       ctx.measures.find((m) => m.field === measureField) ??
       ({ field: measureField, aggregation: 'sum' } as MeasureField)
 
-    let value = getCellValue(
-      ctx.cube,
-      ctx.records,
-      ctx.rowTree,
-      ctx.colTree,
-      row.nodeId,
-      col.nodeId,
-      measure,
-    )
-
-    if (!applyPostFilters(value, ctx.postFilters, measure.field)) {
-      value = null
+    let value: unknown
+    if (ctx.dataKind === 'aggregated') {
+      // Authoritative lookup only — never fall back to aggregators
+      value = getServerCellValue(ctx.serverCells, row.nodeId, col.nodeId, measure.field)
+    } else {
+      value = getCellValue(
+        ctx.cube,
+        ctx.records,
+        ctx.rowTree,
+        ctx.colTree,
+        row.nodeId,
+        col.nodeId,
+        measure,
+      )
+      if (!applyPostFilters(value, ctx.postFilters, measure.field)) {
+        value = null
+      }
     }
 
     const meta = getFieldMeta(ctx.dataCfg, measure.field)
-    const formatted = formatValue(value, meta?.formatter, nullPrecision)
+    const formatted =
+      ctx.dataKind === 'aggregated' && value === null
+        ? formatValue(null, meta?.formatter, { ...nullPrecision, nullDisplay: nullPrecision?.nullDisplay ?? '' })
+        : formatValue(value, meta?.formatter, nullPrecision)
     const kind = row.kind === 'grandTotal' || col.kind === 'grandTotal' || row.kind === 'subTotal' || col.kind === 'subTotal'
       ? 'total'
       : 'data'

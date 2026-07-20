@@ -28,7 +28,8 @@
 | 自定义单元格 slot | #data-cell 等 | Y | 部分 | Y | demo | 0.1 |
 | 本地明细 | LocalDataSource | Y | Y | Y | unit | 0.1 |
 | 预聚合 | dataCfg.preAggregated | Y | Y | Y | unit | 0.1 |
-| 服务端 DataSource | ServerDataSource | Y | Y | Y | unit | 0.1 |
+| 权威交叉结果 | dataKind: aggregated + totals/subTotals | Y | Y | Y | unit/demo | 0.1 |
+| 服务端 DataSource | ServerDataSource | Y | Y | Y | unit/demo | 0.1 |
 | Worker | WorkerExecutor | 部分 | 部分 | Y | unit | 0.1 |
 | 复制 / CSV / Excel | export helpers | Y | Y | Y | e2e | 0.1 |
 | SSR | — | N/A | N/A | **非目标** | — | — |

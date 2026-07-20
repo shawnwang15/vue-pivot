@@ -10,6 +10,7 @@ import { RouterLink, RouterView } from 'vue-router'
         <RouterLink to="/">Superstore</RouterLink>
         <RouterLink to="/poc">5k×200 PoC</RouterLink>
         <RouterLink to="/interaction">Interaction</RouterLink>
+        <RouterLink to="/aggregated">Aggregated</RouterLink>
       </nav>
     </header>
     <main>

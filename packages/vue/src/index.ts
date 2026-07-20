@@ -15,4 +15,26 @@ export * from './composables/use-keyboard-nav'
 export * from './interaction/conditions'
 export * from './export/export'
 
-export type { DataCfg, PivotOptions, PivotCommand, PivotState } from '@vue-pivot/core'
+export type {
+  DataCfg,
+  AggregatedDataCfg,
+  RawDataCfg,
+  AggregatedSubTotalRecord,
+  AggregateOptions,
+  DataKind,
+  PivotOptions,
+  PivotCommand,
+  PivotState,
+  PivotQuery,
+  PivotResult,
+  PivotDataSource,
+} from '@vue-pivot/core'
+
+export {
+  createPivotEngine,
+  ServerDataSource,
+  LocalDataSource,
+  buildPivotQuery,
+  isAggregatedDataCfg,
+  getDataKind,
+} from '@vue-pivot/core'

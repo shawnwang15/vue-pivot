@@ -8,6 +8,8 @@ const props = withDefaults(
     dataCfg: DataCfg
     fields: string[]
     activeFilters?: FilterSpec[]
+    /** Optional server-provided facets; overrides dataCfg.fieldValues / data scan */
+    facets?: Record<string, unknown[]>
   }>(),
   {
     activeFilters: () => [],
@@ -23,7 +25,10 @@ const openFilterField = ref<string | null>(null)
 const filterSpecFor = (field: string): FilterSpec | undefined =>
   props.activeFilters.find((f) => f.field === field && f.operator === 'in')
 
-const valuesFor = (field: string): unknown[] => listFieldValues(props.dataCfg, field)
+const valuesFor = (field: string): unknown[] => {
+  if (props.facets?.[field]) return props.facets[field]!
+  return listFieldValues(props.dataCfg, field)
+}
 
 const selectedValuesFor = (field: string): unknown[] => {
   const spec = filterSpecFor(field)

@@ -1,4 +1,11 @@
-import type { MeasureField, PivotRecord } from './data-cfg'
+import type {
+  AggregateOptions,
+  AggregatedSubTotalRecord,
+  DataKind,
+  FieldName,
+  MeasureField,
+  PivotRecord,
+} from './data-cfg'
 import type { FilterSpec, HierarchyType, SortSpec, TopNSpec, TotalsOptions } from './options'
 
 export interface ViewportRange {
@@ -12,6 +19,8 @@ export interface ViewportRange {
 
 export interface PivotQuery {
   queryId: string
+  /** Data shape expected by the consumer after this query */
+  dataKind: DataKind
   axes: {
     rows: string[]
     columns: string[]
@@ -40,7 +49,7 @@ export interface DrillQuery {
   parentQueryId?: string
 }
 
-export type QueryStatus = 'idle' | 'loading' | 'success' | 'error'
+export type QueryStatus = 'idle' | 'loading' | 'success' | 'error' | 'stale'
 
 export interface PivotResultCell {
   rowNodeId: number
@@ -54,8 +63,9 @@ export interface PivotResult {
   queryId: string
   rowTreeVersion: number
   colTreeVersion: number
+  /** Local / legacy nodeId cells — not used as public aggregated contract */
   cells?: PivotResultCell[]
-  /** Aggregator partial states for merge */
+  /** Aggregator partial states for merge (local/worker) */
   partials?: Array<{
     rowNodeId: number
     colNodeId: number
@@ -63,7 +73,20 @@ export interface PivotResult {
     aggregatorId: string
     state: unknown
   }>
+  /**
+   * Authoritative leaf records.
+   * - raw/local: detail rows
+   * - aggregated: complete leaf wide rows (no $pivot)
+   */
   records?: PivotRecord[]
+  /** Aggregated grand-total wide rows */
+  totals?: PivotRecord[]
+  /** Aggregated subtotal wide rows */
+  subTotals?: AggregatedSubTotalRecord[]
+  /** Aggregated coverage / sparse semantics (aggregated dataKind) */
+  aggregate?: AggregateOptions
+  /** Facet members for filter UI */
+  fieldValues?: Record<FieldName, unknown[]>
   meta?: Record<string, unknown>
 }
 

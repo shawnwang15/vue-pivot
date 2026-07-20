@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { DataCfg, PivotCommand, PivotOptions, SelectionRange } from '@vue-pivot/core'
+import type {
+  DataCfg,
+  PivotCommand,
+  PivotDataSource,
+  PivotOptions,
+  PivotQuery,
+  SelectionRange,
+} from '@vue-pivot/core'
 import { projectHeaderGroups } from '@vue-pivot/table'
 import { usePivotSheet } from '../composables/use-pivot-sheet'
 import { useGridVirtualizer } from '../composables/use-grid-virtualizer'
@@ -19,22 +26,33 @@ const props = withDefaults(
     dataCfg: DataCfg
     options?: PivotOptions
     showFieldPanel?: boolean
+    dataSource?: PivotDataSource
+    autoFetch?: boolean
+    /** Facet members for filter UI (aggregated mode) */
+    filterFacets?: Record<string, unknown[]>
   }>(),
   {
     options: () => ({}),
     showFieldPanel: false,
+    autoFetch: true,
   },
 )
 
 const emit = defineEmits<{
   brushSelection: [selection: SelectionRange[]]
   command: [cmd: PivotCommand]
+  queryChange: [query: PivotQuery]
+  fetchError: [payload: { error: string; queryId?: string | null }]
 }>()
 
-const { engine, state, dispatch, viewport, selection, adapter } = usePivotSheet({
-  dataCfg: props.dataCfg,
-  options: props.options,
-})
+const { engine, state, dispatch, viewport, selection, adapter, loading, error, status, refresh } =
+  usePivotSheet({
+    dataCfg: props.dataCfg,
+    options: props.options,
+    dataSource: props.dataSource,
+    autoFetch: props.autoFetch,
+    onQueryChange: (query) => emit('queryChange', query),
+  })
 
 watch(
   () => props.dataCfg,
@@ -218,17 +236,30 @@ const setScrollEl = (comp: unknown) => {
   scrollEl.value = c.$el ?? null
 }
 
+watch(
+  () => state.value.status,
+  (s) => {
+    if (s === 'error' && state.value.error) {
+      emit('fetchError', { error: state.value.error, queryId: state.value.loadingQueryId })
+    }
+  },
+)
+
 defineExpose({
   engine,
   dispatch,
   state,
   viewport,
   selection,
+  refresh,
+  loading,
+  error,
+  status,
 })
 </script>
 
 <template>
-  <div>
+  <div class="vp-sheet-root">
     <div v-if="showFieldPanel" class="vp-field-toolbar">
       <div v-if="hasFilterFields" class="vp-field-toolbar-filter">
         <button
@@ -248,6 +279,7 @@ defineExpose({
           :data-cfg="state.dataCfg"
           :fields="state.dataCfg.fields.filters ?? []"
           :active-filters="state.filters"
+          :facets="filterFacets"
           @command="onFieldCommand"
         />
       </div>
@@ -274,13 +306,24 @@ defineExpose({
       @command="onFieldCommand"
     />
     <div
+      v-if="status === 'error' && error"
+      class="vp-sheet-error"
+      role="alert"
+    >
+      <span>{{ error }}</span>
+      <button type="button" class="vp-sheet-error-retry" @click="refresh()">重试</button>
+    </div>
+    <div
       class="vp-sheet"
+      :class="{ 'is-loading': loading || status === 'stale' }"
       role="grid"
+      :aria-busy="loading || undefined"
       :aria-rowcount="rowCount"
       :aria-colcount="columnCount"
       tabindex="0"
       @keydown="onKeydown"
     >
+      <div v-if="loading" class="vp-sheet-loading" aria-live="polite">加载中…</div>
       <PivotCorner :height="headerHeight" label="Fields">
         <template #corner-cell>
           <slot name="corner-cell" />
