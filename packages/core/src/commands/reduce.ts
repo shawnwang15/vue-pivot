@@ -115,6 +115,7 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
         valueInCols: state.dataCfg.fields.valueInCols,
       }
       const removeFrom = (zone: typeof command.from) => {
+        if (zone === 'available') return
         if (zone === 'values') {
           fields.values = fields.values.filter((v) =>
             typeof v === 'string' ? v !== command.field : v.field !== command.field,
@@ -128,14 +129,44 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
         const i = index == null ? arr.length : Math.max(0, Math.min(index, arr.length))
         arr.splice(i, 0, item)
       }
-      if (command.to === 'values') insertAt(fields.values, command.field, command.index)
-      else insertAt(fields[command.to], command.field, command.index)
+      if (command.to !== 'available') {
+        if (command.to === 'values') insertAt(fields.values, command.field, command.index)
+        else insertAt(fields[command.to], command.field, command.index)
+      }
+
+      const nextFilters =
+        command.from === 'filters' && command.to !== 'filters'
+          ? state.filters.filter((f) => f.field !== command.field)
+          : state.filters
 
       return {
         state: {
           ...state,
           dataCfg: { ...state.dataCfg, fields },
           measures: normalizeMeasures(fields.values),
+          filters: nextFilters,
+          version: state.version + 1,
+          queryVersion: state.queryVersion + 1,
+        },
+        invalidate: 'all',
+      }
+    }
+    case 'setMeasureAggregation': {
+      const values = [...(state.dataCfg.fields.values ?? [])]
+      const idx = values.findIndex((v) => (typeof v === 'string' ? v : v.field) === command.field)
+      if (idx < 0) return { state, invalidate: 'none' }
+      const current = values[idx]
+      const nextMeasure =
+        typeof current === 'string'
+          ? { field: current, aggregation: command.aggregation }
+          : { ...current, aggregation: command.aggregation }
+      values[idx] = nextMeasure
+      const fields = { ...state.dataCfg.fields, values }
+      return {
+        state: {
+          ...state,
+          dataCfg: { ...state.dataCfg, fields },
+          measures: normalizeMeasures(values),
           version: state.version + 1,
           queryVersion: state.queryVersion + 1,
         },

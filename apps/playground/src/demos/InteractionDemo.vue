@@ -6,18 +6,36 @@ import type { DataCfg, PivotOptions, SelectionRange } from '@vue-pivot/core'
 
 const dataCfg = ref<DataCfg>({
   fields: {
-    rows: ['region', 'city'],
+    rows: ['region'],
     columns: ['category'],
     values: [{ field: 'sales', aggregation: 'sum' }],
     valueInCols: true,
   },
+  meta: [
+    { field: 'region', name: '地区' },
+    { field: 'city', name: '城市' },
+    { field: 'category', name: '品类' },
+    { field: 'sub_category', name: '子品类' },
+    { field: 'channel', name: '渠道' },
+    { field: 'segment', name: '客户细分' },
+    { field: 'year', name: '年份' },
+    { field: 'quarter', name: '季度' },
+    { field: 'sales', name: '销售额' },
+    { field: 'profit', name: '利润' },
+    { field: 'quantity', name: '件数' },
+    { field: 'discount', name: '折扣' },
+  ],
   data: [
-    { region: 'East', city: 'Boston', category: 'Furniture', sales: 120 },
-    { region: 'East', city: 'Boston', category: 'Technology', sales: 220 },
-    { region: 'East', city: 'NYC', category: 'Furniture', sales: 90 },
-    { region: 'West', city: 'SF', category: 'Technology', sales: 310 },
-    { region: 'West', city: 'LA', category: 'Furniture', sales: 150 },
-    { region: 'West', city: 'LA', category: 'Technology', sales: 180 },
+    { region: 'East', city: 'Boston', category: 'Furniture', sub_category: 'Chairs', channel: 'Online', segment: 'Consumer', year: 2024, quarter: 'Q1', sales: 120, profit: 28, quantity: 4, discount: 0.1 },
+    { region: 'East', city: 'Boston', category: 'Technology', sub_category: 'Phones', channel: 'Store', segment: 'Corporate', year: 2024, quarter: 'Q2', sales: 220, profit: 55, quantity: 2, discount: 0 },
+    { region: 'East', city: 'NYC', category: 'Furniture', sub_category: 'Tables', channel: 'Online', segment: 'Home Office', year: 2024, quarter: 'Q1', sales: 90, profit: 12, quantity: 1, discount: 0.15 },
+    { region: 'East', city: 'NYC', category: 'Office Supplies', sub_category: 'Paper', channel: 'Store', segment: 'Consumer', year: 2025, quarter: 'Q1', sales: 45, profit: 18, quantity: 10, discount: 0 },
+    { region: 'West', city: 'SF', category: 'Technology', sub_category: 'Laptops', channel: 'Online', segment: 'Corporate', year: 2024, quarter: 'Q3', sales: 310, profit: 72, quantity: 3, discount: 0.05 },
+    { region: 'West', city: 'SF', category: 'Office Supplies', sub_category: 'Binders', channel: 'Dealer', segment: 'Consumer', year: 2025, quarter: 'Q2', sales: 60, profit: 22, quantity: 8, discount: 0 },
+    { region: 'West', city: 'LA', category: 'Furniture', sub_category: 'Sofas', channel: 'Store', segment: 'Home Office', year: 2024, quarter: 'Q4', sales: 150, profit: 30, quantity: 1, discount: 0.2 },
+    { region: 'West', city: 'LA', category: 'Technology', sub_category: 'Monitors', channel: 'Online', segment: 'Corporate', year: 2025, quarter: 'Q1', sales: 180, profit: 40, quantity: 2, discount: 0.1 },
+    { region: 'Central', city: 'Chicago', category: 'Furniture', sub_category: 'Bookcases', channel: 'Dealer', segment: 'Consumer', year: 2024, quarter: 'Q2', sales: 200, profit: 35, quantity: 2, discount: 0.05 },
+    { region: 'Central', city: 'Dallas', category: 'Technology', sub_category: 'Accessories', channel: 'Online', segment: 'Corporate', year: 2025, quarter: 'Q3', sales: 95, profit: 25, quantity: 5, discount: 0 },
   ],
 })
 
@@ -110,7 +128,7 @@ p {
 }
 button {
   border: 0;
-  background: #0f6e56;
+  background: #2f62b5;
   color: #fff;
   border-radius: 6px;
   padding: 6px 12px;

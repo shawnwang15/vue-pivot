@@ -15,7 +15,8 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./style.css": "./dist/vue-pivot.css"
+    "./style.css": "./dist/vue-pivot.css",
+    "./theme.css": "./dist/vue-pivot.css"
   },
   "files": [
     "dist"
@@ -37,10 +38,10 @@
   "devDependencies": {
     "@tanstack/vue-table": "^8.21.3",
     "@tanstack/vue-virtual": "^3.13.12",
-    "@vitejs/plugin-vue": "^5.2.4",
+    "@vitejs/plugin-vue": "^6.0.8",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vitest": "^3.2.4",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10",
     "vue": "^3.5.17",
     "vue-tsc": "^2.2.10"
   },

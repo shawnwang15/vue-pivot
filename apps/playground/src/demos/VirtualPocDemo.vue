@@ -99,7 +99,7 @@ p {
 }
 .metrics {
   font-variant-numeric: tabular-nums;
-  color: #0f6e56;
+  color: #2f62b5;
   font-weight: 600;
 }
 .sheet-wrap {

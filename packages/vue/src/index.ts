@@ -7,6 +7,7 @@ export { default as PivotRowHeader } from './components/PivotRowHeader.vue'
 export { default as PivotDataGrid } from './components/PivotDataGrid.vue'
 export { default as PivotTooltip } from './components/PivotTooltip.vue'
 export { default as PivotFieldPanel } from './components/PivotFieldPanel.vue'
+export { default as PivotFilterBar } from './components/PivotFilterBar.vue'
 
 export * from './composables/use-pivot-sheet'
 export * from './composables/use-grid-virtualizer'

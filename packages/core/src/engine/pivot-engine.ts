@@ -1,6 +1,6 @@
-import type { DataCfg } from '../types/data-cfg'
-import type { PivotOptions } from '../types/options'
-import type { PivotCommand } from '../types/pivot-command'
+import type { DataCfg } from '../types'
+import type { PivotOptions } from '../types'
+import type { PivotCommand } from '../types'
 import type { PivotState } from '../state/pivot-state'
 import { createInitialState } from '../state/pivot-state'
 import { reducePivotState } from '../commands/reduce'
@@ -16,7 +16,7 @@ import {
   type QueryController,
 } from '../datasource/pivot-data-source'
 import { WorkerExecutor, createWorkerRequest } from '../worker/pivot-worker'
-import { normalizeMeasures } from '../types/data-cfg'
+import { normalizeMeasures } from '../types'
 
 export type PivotListener = (state: PivotState) => void
 

@@ -12,8 +12,10 @@ test.describe('PivotSheet', () => {
 
   test('field panel drag zones exist', async ({ page }) => {
     await page.goto('/')
+    await page.getByRole('button', { name: '配置字段' }).click()
     await expect(page.locator('.vp-field-panel')).toBeVisible()
-    await expect(page.locator('.vp-field-zone')).toHaveCount(4)
+    await expect(page.locator('.vp-field-zone')).toHaveCount(5)
+    await expect(page.locator('.vp-field-available')).toContainText('city')
   })
 
   test('keyboard navigation moves focus selection', async ({ page }) => {

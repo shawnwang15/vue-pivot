@@ -1,4 +1,4 @@
-import type { DataCfg } from './data-cfg'
+import type { AggregatorId, DataCfg } from './data-cfg'
 import type { FilterSpec, PivotOptions, SortSpec, TopNSpec } from './options'
 import type { SelectionRange } from './selection'
 
@@ -12,6 +12,7 @@ export type PivotCommand =
   | { type: 'filter'; filters: FilterSpec[] }
   | { type: 'topN'; topN: TopNSpec[] }
   | { type: 'moveField'; from: FieldZone; to: FieldZone; field: string; index?: number }
+  | { type: 'setMeasureAggregation'; field: string; aggregation: AggregatorId }
   | { type: 'resizeColumn'; columnId: string; width: number }
   | { type: 'setColumnVisibility'; columnId: string; visible: boolean }
   | { type: 'reorderColumns'; columnIds: string[] }
@@ -24,7 +25,7 @@ export type PivotCommand =
   | { type: 'invalidate'; scope: InvalidateScope }
   | { type: 'setViewport'; rowStart: number; colStart: number }
 
-export type FieldZone = 'rows' | 'columns' | 'values' | 'filters'
+export type FieldZone = 'rows' | 'columns' | 'values' | 'filters' | 'available'
 
 export type InvalidateScope =
   | 'all'

@@ -11,6 +11,7 @@ import PivotRowHeader from './PivotRowHeader.vue'
 import PivotDataGrid from './PivotDataGrid.vue'
 import PivotTooltip from './PivotTooltip.vue'
 import PivotFieldPanel from './PivotFieldPanel.vue'
+import PivotFilterBar from './PivotFilterBar.vue'
 import '../styles/tokens.css'
 
 const props = withDefaults(
@@ -37,7 +38,11 @@ const { engine, state, dispatch, viewport, selection, adapter } = usePivotSheet(
 
 watch(
   () => props.dataCfg,
-  (cfg) => dispatch({ type: 'setDataCfg', dataCfg: cfg }),
+  (cfg) => {
+    // Avoid clobbering in-panel moveField/filter edits with a stale parent object.
+    if (cfg === state.value.dataCfg) return
+    dispatch({ type: 'setDataCfg', dataCfg: cfg })
+  },
   { deep: true },
 )
 watch(
@@ -165,6 +170,23 @@ const onFieldCommand = (cmd: PivotCommand) => {
   emit('command', cmd)
 }
 
+const fieldPanelOpen = ref(false)
+const filterBarOpen = ref(false)
+
+const hasFilterFields = computed(() => (state.value.dataCfg.fields.filters?.length ?? 0) > 0)
+
+watch(hasFilterFields, (has) => {
+  if (!has) filterBarOpen.value = false
+})
+
+const toggleFieldPanel = () => {
+  fieldPanelOpen.value = !fieldPanelOpen.value
+}
+
+const toggleFilterBar = () => {
+  filterBarOpen.value = !filterBarOpen.value
+}
+
 const tooltip = ref({ visible: false, x: 0, y: 0, text: '' })
 
 const onScroll = (e: Event) => {
@@ -207,8 +229,47 @@ defineExpose({
 
 <template>
   <div>
+    <div v-if="showFieldPanel" class="vp-field-toolbar">
+      <div v-if="hasFilterFields" class="vp-field-toolbar-filter">
+        <button
+          type="button"
+          class="vp-field-config-btn"
+          :class="{ 'is-active': filterBarOpen }"
+          aria-label="过滤"
+          :aria-expanded="filterBarOpen"
+          @click="toggleFilterBar"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 5h16l-6.5 7.5V19l-3 1.5v-8L4 5Z" />
+          </svg>
+        </button>
+        <PivotFilterBar
+          v-if="filterBarOpen"
+          :data-cfg="state.dataCfg"
+          :fields="state.dataCfg.fields.filters ?? []"
+          :active-filters="state.filters"
+          @command="onFieldCommand"
+        />
+      </div>
+      <button
+        type="button"
+        class="vp-field-config-btn"
+        aria-label="配置字段"
+        :aria-expanded="fieldPanelOpen"
+        @click="toggleFieldPanel"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065Z"
+          />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+      </button>
+    </div>
     <PivotFieldPanel
-      v-if="showFieldPanel"
+      v-if="showFieldPanel && fieldPanelOpen"
       :data-cfg="state.dataCfg"
       @command="onFieldCommand"
     />

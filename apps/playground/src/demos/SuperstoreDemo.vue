@@ -8,12 +8,28 @@ const records = createSuperstoreData(2)
 
 const dataCfg = ref<DataCfg>({
   fields: {
-    rows: ['province', 'city'],
+    rows: ['province'],
     columns: ['type', 'sub_type'],
     values: ['number'],
     valueInCols: true,
   },
-  meta: [{ field: 'number', name: '数量', formatter: (v) => `${v}` }],
+  meta: [
+    { field: 'province', name: '省份' },
+    { field: 'city', name: '城市' },
+    { field: 'type', name: '品类' },
+    { field: 'sub_type', name: '子品类' },
+    { field: 'channel', name: '渠道' },
+    { field: 'segment', name: '客户细分' },
+    { field: 'ship_mode', name: '配送方式' },
+    { field: 'year', name: '年份' },
+    { field: 'quarter', name: '季度' },
+    { field: 'month', name: '月份' },
+    { field: 'number', name: '数量', formatter: (v) => `${v}` },
+    { field: 'sales', name: '销售额' },
+    { field: 'profit', name: '利润' },
+    { field: 'discount', name: '折扣' },
+    { field: 'quantity', name: '件数' },
+  ],
   data: records,
 })
 
@@ -33,7 +49,7 @@ const options = ref<PivotOptions>({
     background: [
       {
         field: 'number',
-        mapping: (v) => (Number(v) > 700 ? '#d8f3e7' : Number(v) < 200 ? '#fde8e8' : undefined),
+        mapping: (v) => (Number(v) > 700 ? '#e2eeff' : Number(v) < 200 ? '#fde8e8' : undefined),
       },
     ],
     interval: [
@@ -117,8 +133,8 @@ p {
   align-items: center;
 }
 button {
-  border: 1px solid #0f6e56;
-  background: #0f6e56;
+  border: 1px solid #2f62b5;
+  background: #2f62b5;
   color: white;
   border-radius: 6px;
   padding: 6px 12px;

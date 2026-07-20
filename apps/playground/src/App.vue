@@ -25,7 +25,7 @@ body,
   margin: 0;
   height: 100%;
   font-family: "IBM Plex Sans", "Source Han Sans SC", sans-serif;
-  background: radial-gradient(circle at top left, #dce8e2, #eef2f6 45%, #e6edf3);
+  background: radial-gradient(circle at top left, #e2eeff, #eef2f6 45%, #e6edf3);
   color: #1b2430;
 }
 .app {
@@ -52,7 +52,7 @@ nav {
   gap: 14px;
 }
 nav a {
-  color: #0f6e56;
+  color: #2f62b5;
   text-decoration: none;
   font-weight: 500;
 }

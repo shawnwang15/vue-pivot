@@ -63,3 +63,51 @@ export function normalizeMeasures(values: MeasureInput[]): MeasureField[] {
     typeof v === 'string' ? { field: v, aggregation: 'sum' } : { aggregation: 'sum', ...v },
   )
 }
+
+function assignedFields(fields: PivotFields): Set<FieldName> {
+  const assigned = new Set<FieldName>()
+  for (const f of fields.rows ?? []) assigned.add(f)
+  for (const f of fields.columns ?? []) assigned.add(f)
+  for (const f of fields.filters ?? []) assigned.add(f)
+  for (const v of fields.values ?? []) assigned.add(typeof v === 'string' ? v : v.field)
+  return assigned
+}
+
+/** All known field names: data keys ∪ meta ∪ currently assigned zones. */
+export function listFieldCatalog(dataCfg: DataCfg): string[] {
+  const catalog = new Set<string>()
+  for (const record of dataCfg.data ?? []) {
+    for (const key of Object.keys(record)) catalog.add(key)
+  }
+  for (const m of dataCfg.meta ?? []) catalog.add(m.field)
+  for (const f of assignedFields(dataCfg.fields)) catalog.add(f)
+  return [...catalog].sort()
+}
+
+/** Fields in the catalog that are not in rows/columns/values/filters. */
+export function listUnassignedFields(dataCfg: DataCfg): string[] {
+  const assigned = assignedFields(dataCfg.fields)
+  return listFieldCatalog(dataCfg).filter((f) => !assigned.has(f))
+}
+
+function compareFieldValues(a: unknown, b: unknown): number {
+  if (a == null && b == null) return 0
+  if (a == null) return -1
+  if (b == null) return 1
+  if (typeof a === 'number' && typeof b === 'number') return a - b
+  return String(a).localeCompare(String(b), undefined, { numeric: true })
+}
+
+/** Distinct values for a field from raw `dataCfg.data` (stable sort). */
+export function listFieldValues(dataCfg: DataCfg, field: string): unknown[] {
+  const seen = new Set<unknown>()
+  const values: unknown[] = []
+  for (const record of dataCfg.data ?? []) {
+    if (!(field in record)) continue
+    const value = record[field]
+    if (seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+  return values.sort(compareFieldValues)
+}

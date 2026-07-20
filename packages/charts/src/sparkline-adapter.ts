@@ -12,7 +12,7 @@ export function cellToSparklineOption(cell: PivotCell): SparklineOption | null {
   return {
     type: 'line',
     data: series.map((v) => Number(v) || 0),
-    color: '#0f6e56',
+    color: '#2f62b5',
   }
 }
 

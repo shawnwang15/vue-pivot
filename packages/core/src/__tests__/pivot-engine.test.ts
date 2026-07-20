@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createPivotEngine } from '../engine/pivot-engine'
 import type { DataCfg } from '../types/data-cfg'
+import { listFieldValues, listUnassignedFields } from '../types/data-cfg'
 
 const sample: DataCfg = {
   fields: {
@@ -65,6 +66,65 @@ describe('PivotEngine', () => {
     engine.dispatch({ type: 'moveField', from: 'columns', to: 'rows', field: 'type' })
     expect(engine.getState().dataCfg.fields.rows).toContain('type')
     expect(engine.getState().dataCfg.fields.columns).not.toContain('type')
+  })
+
+  it('moveField to/from available virtual zone', () => {
+    const engine = createPivotEngine({ dataCfg: sample })
+    engine.dispatch({ type: 'moveField', from: 'columns', to: 'available', field: 'type' })
+    const afterRemove = engine.getState().dataCfg
+    expect(afterRemove.fields.columns).not.toContain('type')
+    expect(afterRemove.fields.rows).not.toContain('type')
+    expect(listUnassignedFields(afterRemove)).toContain('type')
+
+    engine.dispatch({ type: 'moveField', from: 'available', to: 'rows', field: 'type' })
+    expect(engine.getState().dataCfg.fields.rows).toContain('type')
+    expect(listUnassignedFields(engine.getState().dataCfg)).not.toContain('type')
+  })
+
+  it('setMeasureAggregation updates values measure', () => {
+    const engine = createPivotEngine({
+      dataCfg: sample,
+      options: { hierarchyType: 'grid', defaultExpandDepth: 2 },
+    })
+    engine.dispatch({ type: 'setMeasureAggregation', field: 'number', aggregation: 'avg' })
+    const measure = engine.getState().dataCfg.fields.values[0]
+    expect(typeof measure === 'object' && measure.aggregation).toBe('avg')
+    expect(engine.getState().measures[0]?.aggregation).toBe('avg')
+    expect(engine.getViewport().columnCount).toBeGreaterThan(0)
+  })
+
+  it('listUnassignedFields returns catalog minus assigned', () => {
+    const cfg: DataCfg = {
+      fields: {
+        rows: ['province'],
+        columns: ['type'],
+        values: ['number'],
+      },
+      meta: [{ field: 'number', name: '数量' }],
+      data: [{ province: '浙江', city: '杭州', type: '笔', number: 10, extra: 1 }],
+    }
+    expect(listUnassignedFields(cfg)).toEqual(['city', 'extra'])
+  })
+
+  it('listFieldValues returns distinct sorted members from raw data', () => {
+    expect(listFieldValues(sample, 'city')).toEqual(['杭州', '舟山', '长春'])
+    expect(listFieldValues(sample, 'number')).toEqual([5, 8, 10, 12, 20])
+  })
+
+  it('moveField leaving filters clears matching FilterSpec', () => {
+    const engine = createPivotEngine({
+      dataCfg: {
+        ...sample,
+        fields: { ...sample.fields, filters: ['city'], rows: ['province'] },
+      },
+      options: {
+        filters: [{ field: 'city', operator: 'in', value: ['杭州'] }],
+      },
+    })
+    expect(engine.getState().filters).toHaveLength(1)
+    engine.dispatch({ type: 'moveField', from: 'filters', to: 'available', field: 'city' })
+    expect(engine.getState().dataCfg.fields.filters ?? []).not.toContain('city')
+    expect(engine.getState().filters).toEqual([])
   })
 
   it('getWindow only materializes viewport', () => {
