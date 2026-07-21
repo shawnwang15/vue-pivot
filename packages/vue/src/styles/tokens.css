@@ -23,7 +23,7 @@
   --vp-cell-bg-selected: #c9dcff;
   --vp-cell-bg-total: #eef3f9;
 
-  --vp-grid-line: #dde7f2;
+  --vp-grid-line: #c5d4e8; /* 与外边框统一，白底上清晰但不突兀 */
   --vp-sheet-bg-top: #eef4fb;
   --vp-sheet-bg-bottom: #e7eef8;
 
