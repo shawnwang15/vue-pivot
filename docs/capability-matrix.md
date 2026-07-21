@@ -27,6 +27,7 @@
 | 主题 token | CSS variables | Y | Y | Y | visual | 0.1 |
 | 自定义单元格 slot | #data-cell 等 | Y | 部分 | Y | demo | 0.1 |
 | 本地明细 | LocalDataSource | Y | Y | Y | unit | 0.1 |
+| 明细表 / TableSheet | sheetType: table | Y | Y | Y | unit/demo | 0.1 |
 | 预聚合 | dataCfg.preAggregated | Y | Y | Y | unit | 0.1 |
 | 权威交叉结果 | dataKind: aggregated + totals/subTotals | Y | Y | Y | unit/demo | 0.1 |
 | 服务端 DataSource | ServerDataSource | Y | Y | Y | unit/demo | 0.1 |

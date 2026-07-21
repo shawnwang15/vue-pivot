@@ -1,6 +1,6 @@
 import type { PivotCommand } from '../types/pivot-command'
 import type { PivotState } from '../state/pivot-state'
-import { getDataKind, normalizeMeasures } from '../types/data-cfg'
+import { assertValidSheetCfg, getDataKind, isTableSheet, normalizeMeasures } from '../types/data-cfg'
 import { normalizeRange } from '../types/selection'
 import { setExpanded } from '../engine/dim-tree'
 import { invalidateCube } from '../engine/cube'
@@ -53,11 +53,29 @@ function bumpQuery(state: PivotState, patch: Partial<PivotState>): PivotState {
 export function reducePivotState(state: PivotState, command: PivotCommand): ReduceResult {
   switch (command.type) {
     case 'setDataCfg': {
+      try {
+        assertValidSheetCfg(command.dataCfg)
+      } catch (err) {
+        return {
+          state: {
+            ...state,
+            dataCfg: command.dataCfg,
+            records: [],
+            measures: [],
+            status: 'error',
+            error: err instanceof Error ? err.message : String(err),
+            version: state.version + 1,
+            queryVersion: state.queryVersion + 1,
+          },
+          invalidate: 'all',
+        }
+      }
+      const table = isTableSheet(command.dataCfg)
       const next: PivotState = {
         ...state,
         dataCfg: command.dataCfg,
         records: command.dataCfg.data ?? [],
-        measures: normalizeMeasures(command.dataCfg.fields.values ?? []),
+        measures: table ? [] : normalizeMeasures(command.dataCfg.fields.values ?? []),
         version: state.version + 1,
         queryVersion: state.queryVersion + 1,
         status: 'idle',
@@ -116,6 +134,7 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
       }
     }
     case 'expand': {
+      if (isTableSheet(state.dataCfg)) return { state, invalidate: 'none' }
       const tree = command.axis === 'row' ? state.rowTree : state.colTree
       setExpanded(tree, command.path, true)
       const pathsKey = command.axis === 'row' ? 'expandedRowPaths' : 'expandedColPaths'
@@ -131,6 +150,7 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
       }
     }
     case 'collapse': {
+      if (isTableSheet(state.dataCfg)) return { state, invalidate: 'none' }
       const tree = command.axis === 'row' ? state.rowTree : state.colTree
       setExpanded(tree, command.path, false)
       const pathsKey = command.axis === 'row' ? 'expandedRowPaths' : 'expandedColPaths'
@@ -168,10 +188,21 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
       return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
     }
     case 'topN': {
+      if (isTableSheet(state.dataCfg)) return { state, invalidate: 'none' }
       const next = bumpQuery(state, { topN: command.topN })
       return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
     }
     case 'moveField': {
+      // Table sheet only allows columns + filters zones
+      if (
+        isTableSheet(state.dataCfg) &&
+        (command.to === 'rows' ||
+          command.to === 'values' ||
+          command.from === 'rows' ||
+          command.from === 'values')
+      ) {
+        return { state, invalidate: 'none' }
+      }
       const fields = {
         rows: [...(state.dataCfg.fields.rows ?? [])],
         columns: [...(state.dataCfg.fields.columns ?? [])],
@@ -205,14 +236,20 @@ export function reducePivotState(state: PivotState, command: PivotCommand): Redu
           : state.filters
 
       const nextCfg = { ...state.dataCfg, fields }
+      try {
+        assertValidSheetCfg(nextCfg)
+      } catch {
+        return { state, invalidate: 'none' }
+      }
       const next = bumpQuery(state, {
         dataCfg: nextCfg,
-        measures: normalizeMeasures(fields.values),
+        measures: isTableSheet(nextCfg) ? [] : normalizeMeasures(fields.values),
         filters: nextFilters,
       })
       return { state: next, invalidate: 'all', remoteRefresh: isAggregated(state) }
     }
     case 'setMeasureAggregation': {
+      if (isTableSheet(state.dataCfg)) return { state, invalidate: 'none' }
       const values = [...(state.dataCfg.fields.values ?? [])]
       const idx = values.findIndex((v) => (typeof v === 'string' ? v : v.field) === command.field)
       if (idx < 0) return { state, invalidate: 'none' }

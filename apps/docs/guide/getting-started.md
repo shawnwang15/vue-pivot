@@ -44,9 +44,10 @@ const options = {
 
 ## 配置说明
 
-- 数据与字段布局：[`DataCfg`](/api/data-cfg)（明细 `raw` / 权威交叉 `aggregated`）
+- 数据与字段布局：[`DataCfg`](/api/data-cfg)（明细 `raw` / 权威交叉 `aggregated`；布局 `sheetType: pivot | table`）
 - 展示与交互：[`PivotOptions`](/api/options)（层级、合计、排序筛选、样式等）
 - 组件 Props / 事件：[`PivotSheet`](/api/pivot-sheet)
+- 扁平明细表：[明细表 Table](/guide/table-sheet)
 
 ## 注意
 

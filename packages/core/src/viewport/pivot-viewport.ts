@@ -1,6 +1,6 @@
 import type { ColumnLayout, PivotCell, PivotWindow, RowLayout } from '../types/layout'
 import type { ViewportRange } from '../types/pivot-query'
-import type { DataKind, MeasureField } from '../types/data-cfg'
+import type { DataKind, MeasureField, SheetType } from '../types/data-cfg'
 import type { DimTree } from '../engine/dim-tree'
 import { getVisibleLeaves } from '../engine/dim-tree'
 import type { LazyCube } from '../engine/cube'
@@ -20,6 +20,7 @@ export interface ViewportContext {
   cube: LazyCube
   serverCells: ServerCellStore
   dataKind: DataKind
+  sheetType: SheetType
   records: PivotRecord[]
   measures: MeasureField[]
   valueInCols: boolean
@@ -38,8 +39,23 @@ function measureLabel(m: MeasureField, dataCfg: DataCfg): string {
 }
 
 export function buildRowLayouts(ctx: ViewportContext): RowLayout[] {
-  const leaves = getVisibleLeaves(ctx.rowTree, ctx.hierarchyType)
   const rowHeight = ctx.options.style?.rowHeight ?? 32
+  if (ctx.sheetType === 'table') {
+    return ctx.records.map((_, index) => ({
+      index,
+      nodeId: index,
+      path: [String(index)],
+      label: String(index + 1),
+      depth: 0,
+      isLeaf: true,
+      expanded: false,
+      kind: 'dimension' as const,
+      height: rowHeight,
+      parentId: null,
+    }))
+  }
+
+  const leaves = getVisibleLeaves(ctx.rowTree, ctx.hierarchyType)
   return leaves.map((node, index) => ({
     index,
     nodeId: node.id,
@@ -54,7 +70,55 @@ export function buildRowLayouts(ctx: ViewportContext): RowLayout[] {
   }))
 }
 
+function buildTableColumnLayouts(ctx: ViewportContext): ColumnLayout[] {
+  const defaultWidth = ctx.options.style?.colWidth ?? 120
+  const fields = ctx.dataCfg.fields.columns ?? []
+  const cols: ColumnLayout[] = []
+  for (const field of fields) {
+    const columnId = field
+    if (ctx.columnVisibility.get(columnId) === false) continue
+    cols.push({
+      index: cols.length,
+      nodeId: cols.length,
+      path: [field],
+      label: getFieldMeta(ctx.dataCfg, field)?.name ?? field,
+      depth: 0,
+      isLeaf: true,
+      expanded: false,
+      kind: 'dimension',
+      width: ctx.columnWidths.get(columnId) ?? defaultWidth,
+      measure: field,
+      columnId,
+      parentId: null,
+      pinned: ctx.pinnedColumns.get(columnId) ?? false,
+      visible: true,
+    })
+  }
+
+  if (ctx.columnOrder.length) {
+    const orderIndex = new Map(ctx.columnOrder.map((id, i) => [id, i]))
+    cols.sort((a, b) => {
+      const ai = orderIndex.get(a.columnId) ?? Number.MAX_SAFE_INTEGER
+      const bi = orderIndex.get(b.columnId) ?? Number.MAX_SAFE_INTEGER
+      if (ai !== bi) return ai - bi
+      return a.index - b.index
+    })
+  }
+  cols.sort((a, b) => {
+    const ap = a.pinned === 'left' ? 0 : a.pinned === 'right' ? 2 : 1
+    const bp = b.pinned === 'left' ? 0 : b.pinned === 'right' ? 2 : 1
+    if (ap !== bp) return ap - bp
+    return a.index - b.index
+  })
+  cols.forEach((c, i) => {
+    c.index = i
+  })
+  return cols
+}
+
 export function buildColumnLayouts(ctx: ViewportContext): ColumnLayout[] {
+  if (ctx.sheetType === 'table') return buildTableColumnLayouts(ctx)
+
   const leaves = getVisibleLeaves(ctx.colTree, ctx.hierarchyType === 'grid' ? 'grid' : ctx.hierarchyType)
   const defaultWidth = ctx.options.style?.colWidth ?? 120
   const cols: ColumnLayout[] = []
@@ -187,6 +251,24 @@ export function createPivotViewport(ctx: ViewportContext): PivotViewport {
         formatted: '-',
       }
     }
+
+    if (ctx.sheetType === 'table') {
+      const field = col.measure ?? col.path[0] ?? ''
+      const value = ctx.records[rowIndex]?.[field] ?? null
+      const meta = getFieldMeta(ctx.dataCfg, field)
+      return {
+        rowIndex,
+        colIndex: columnIndex,
+        rowNodeId: row.nodeId,
+        colNodeId: col.nodeId,
+        measure: field,
+        value,
+        formatted: formatValue(value, meta?.formatter, nullPrecision),
+        raw: value,
+        type: 'data',
+      }
+    }
+
     const measureField =
       col.measure ??
       ctx.measures[0]?.field ??

@@ -56,6 +56,27 @@ export class LocalDataSource implements PivotDataSource {
   async query(request: PivotQuery, signal: AbortSignal): Promise<PivotResult> {
     if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
     let records = applyPreFilters(this.records, request.preFilters)
+
+    if (request.sheetType === 'table') {
+      const tableSort = request.sort.map((s) => ({
+        ...s,
+        method: 'alpha' as const,
+        measure: undefined,
+      }))
+      records = sortRecords(records, tableSort)
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+      return {
+        queryId: request.queryId,
+        rowTreeVersion: 0,
+        colTreeVersion: 0,
+        records,
+        meta: {
+          rowCount: records.length,
+          colCount: request.axes.columns.length,
+        },
+      }
+    }
+
     records = applyTopN(records, request.topN)
     records = sortRecords(records, request.sort)
 

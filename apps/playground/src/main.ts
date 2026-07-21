@@ -5,6 +5,7 @@ import SuperstoreDemo from './demos/SuperstoreDemo.vue'
 import VirtualPocDemo from './demos/VirtualPocDemo.vue'
 import InteractionDemo from './demos/InteractionDemo.vue'
 import AggregatedDemo from './demos/AggregatedDemo.vue'
+import TableDemo from './demos/TableDemo.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -13,6 +14,7 @@ const router = createRouter({
     { path: '/poc', component: VirtualPocDemo },
     { path: '/interaction', component: InteractionDemo },
     { path: '/aggregated', component: AggregatedDemo },
+    { path: '/table', component: TableDemo },
   ],
 })
 

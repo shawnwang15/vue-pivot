@@ -5,7 +5,8 @@ import type {
   SortingState,
   VisibilityState,
 } from '@tanstack/vue-table'
-import type { PivotCommand, PivotEngine, SortSpec } from '@vue-pivot/core'
+import type { PivotCommand, PivotEngine, SheetType, SortSpec } from '@vue-pivot/core'
+import { getSheetType } from '@vue-pivot/core'
 
 export interface ManualTableState {
   sorting: SortingState
@@ -39,13 +40,26 @@ export function readManualState(engine: PivotEngine): ManualTableState {
   }
 }
 
-export function sortingToCommands(sorting: SortingState): PivotCommand {
-  const sort: SortSpec[] = sorting.map((s) => ({
-    field: s.id,
-    order: s.desc ? 'desc' : 'asc',
-    method: 'measure',
-    measure: s.id.includes('/') ? s.id.split('/').pop() : s.id,
-  }))
+export function sortingToCommands(
+  sorting: SortingState,
+  sheetType: SheetType = 'pivot',
+): PivotCommand {
+  const sort: SortSpec[] = sorting.map((s) => {
+    const field = s.id.includes('/') ? (s.id.split('/').pop() ?? s.id) : s.id
+    if (sheetType === 'table') {
+      return {
+        field,
+        order: s.desc ? 'desc' : 'asc',
+        method: 'alpha' as const,
+      }
+    }
+    return {
+      field: s.id,
+      order: s.desc ? 'desc' : 'asc',
+      method: 'measure' as const,
+      measure: field,
+    }
+  })
   return { type: 'sort', sort }
 }
 
@@ -83,7 +97,9 @@ export function applyManualStateChange(
   engine: PivotEngine,
   patch: Partial<ManualTableState>,
 ): void {
-  if (patch.sorting) engine.dispatch(sortingToCommands(patch.sorting))
+  if (patch.sorting) {
+    engine.dispatch(sortingToCommands(patch.sorting, getSheetType(engine.getState().dataCfg)))
+  }
   if (patch.columnVisibility) {
     for (const cmd of visibilityToCommands(patch.columnVisibility)) engine.dispatch(cmd)
   }

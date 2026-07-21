@@ -17,6 +17,7 @@ export default defineConfig({
           { text: '架构说明', link: '/guide/architecture' },
           { text: 'DataSource 与 Worker', link: '/guide/datasource-worker' },
           { text: 'Aggregated 模式', link: '/guide/aggregated-mode' },
+          { text: '明细表 Table', link: '/guide/table-sheet' },
           { text: '定制与主题', link: '/guide/customization' },
           { text: '性能', link: '/guide/performance' },
           { text: '从 S2 迁移', link: '/guide/migration-from-s2' },

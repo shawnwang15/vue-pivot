@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { AggregatorId, DataCfg, FieldZone, MeasureField, PivotCommand } from '@vue-pivot/core'
-import { listAggregators, listUnassignedFields, normalizeMeasures } from '@vue-pivot/core'
+import {
+  getSheetType,
+  listAggregators,
+  listUnassignedFields,
+  normalizeMeasures,
+} from '@vue-pivot/core'
 
 const props = defineProps<{
   dataCfg: DataCfg
@@ -11,7 +16,12 @@ const emit = defineEmits<{
   command: [cmd: PivotCommand]
 }>()
 
-const occupiedZones = ['rows', 'columns', 'values', 'filters'] as const
+const isTableSheet = computed(() => getSheetType(props.dataCfg) === 'table')
+const occupiedZones = computed(() =>
+  isTableSheet.value
+    ? (['columns', 'filters'] as const)
+    : (['rows', 'columns', 'values', 'filters'] as const),
+)
 
 const zones = computed(() => {
   const f = props.dataCfg.fields
@@ -36,6 +46,7 @@ const onDragStart = (field: string, from: FieldZone) => {
 
 const onDrop = (to: FieldZone) => {
   if (!dragField || !dragFrom || dragFrom === to) return
+  if (isTableSheet.value && (to === 'rows' || to === 'values')) return
   emit('command', { type: 'moveField', from: dragFrom, to, field: dragField })
   dragField = null
   dragFrom = null
@@ -72,7 +83,7 @@ const measureKey = (m: MeasureField) => m.field
       </div>
     </div>
 
-    <div class="vp-field-zones">
+    <div class="vp-field-zones" :class="{ 'is-table': isTableSheet }">
       <div
         v-for="zone in occupiedZones"
         :key="zone"
@@ -80,7 +91,7 @@ const measureKey = (m: MeasureField) => m.field
         @dragover.prevent
         @drop="onDrop(zone)"
       >
-        <strong>{{ zone }}</strong>
+        <strong>{{ zone === 'columns' && isTableSheet ? 'columns (display)' : zone }}</strong>
         <template v-if="zone === 'values'">
           <div
             v-for="measure in zones.values"

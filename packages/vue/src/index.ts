@@ -22,6 +22,7 @@ export type {
   AggregatedSubTotalRecord,
   AggregateOptions,
   DataKind,
+  SheetType,
   PivotOptions,
   PivotCommand,
   PivotState,
@@ -37,4 +38,7 @@ export {
   buildPivotQuery,
   isAggregatedDataCfg,
   getDataKind,
+  getSheetType,
+  isTableSheet,
+  assertValidSheetCfg,
 } from '@vue-pivot/core'

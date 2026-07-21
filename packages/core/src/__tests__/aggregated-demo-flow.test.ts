@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createPivotEngine } from '../engine/pivot-engine'
-import type { PivotDataSource, PivotRecord } from '../types'
+import type { PivotDataSource } from '../datasource/pivot-data-source'
+import type { PivotRecord } from '../types'
 
 const LEAVES: PivotRecord[] = [
   {

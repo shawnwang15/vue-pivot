@@ -3,6 +3,9 @@ export type FieldName = string
 /** raw = detail rows needing local pivot; aggregated = pre-crossed cells, skip library aggregation */
 export type DataKind = 'raw' | 'aggregated'
 
+/** pivot = cross-tab; table = flat detail rows (columns = display fields, no aggregation) */
+export type SheetType = 'pivot' | 'table'
+
 export type FormatSpec =
   | { type: 'number'; precision?: number; prefix?: string; suffix?: string }
   | { type: 'percent'; precision?: number }
@@ -84,6 +87,11 @@ export interface PreAggregatedCell {
 /** Raw detail rows; dataKind may be omitted (defaults to raw) */
 export interface RawDataCfg {
   dataKind?: 'raw'
+  /**
+   * Layout mode. `table` shows each record as a row; `fields.columns` are display columns.
+   * Requires empty `fields.rows` / `fields.values`. Incompatible with `dataKind: 'aggregated'`.
+   */
+  sheetType?: SheetType
   fields: PivotFields
   meta?: FieldMeta[]
   data?: PivotRecord[]
@@ -124,6 +132,36 @@ export function isRawDataCfg(cfg: DataCfg): cfg is RawDataCfg {
 
 export function getDataKind(cfg: DataCfg): DataKind {
   return cfg.dataKind === 'aggregated' ? 'aggregated' : 'raw'
+}
+
+export function getSheetType(cfg: DataCfg): SheetType {
+  if (isAggregatedDataCfg(cfg)) return 'pivot'
+  return cfg.sheetType === 'table' ? 'table' : 'pivot'
+}
+
+export function isTableSheet(cfg: DataCfg): boolean {
+  return getSheetType(cfg) === 'table'
+}
+
+/** Throws when sheetType/dataKind/fields shape is an invalid combination. */
+export function assertValidSheetCfg(cfg: DataCfg): void {
+  if (isAggregatedDataCfg(cfg)) {
+    if ('sheetType' in cfg && (cfg as { sheetType?: SheetType }).sheetType === 'table') {
+      throw new Error('[vue-pivot] sheetType: "table" is incompatible with dataKind: "aggregated"')
+    }
+    return
+  }
+  if (cfg.sheetType !== 'table') return
+  const rows = cfg.fields.rows ?? []
+  const values = cfg.fields.values ?? []
+  if (rows.length > 0 || values.length > 0) {
+    throw new Error(
+      '[vue-pivot] sheetType: "table" requires empty fields.rows and fields.values (use fields.columns for display columns)',
+    )
+  }
+  if (cfg.preAggregated?.length) {
+    throw new Error('[vue-pivot] sheetType: "table" does not support preAggregated')
+  }
 }
 
 export function normalizeMeasures(values: MeasureInput[]): MeasureField[] {

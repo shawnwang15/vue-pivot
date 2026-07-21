@@ -11,6 +11,7 @@ import { RouterLink, RouterView } from 'vue-router'
         <RouterLink to="/poc">5k×200 PoC</RouterLink>
         <RouterLink to="/interaction">Interaction</RouterLink>
         <RouterLink to="/aggregated">Aggregated</RouterLink>
+        <RouterLink to="/table">Table</RouterLink>
       </nav>
     </header>
     <main>

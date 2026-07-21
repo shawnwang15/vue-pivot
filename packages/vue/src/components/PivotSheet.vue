@@ -8,6 +8,7 @@ import type {
   PivotQuery,
   SelectionRange,
 } from '@vue-pivot/core'
+import { getSheetType } from '@vue-pivot/core'
 import { projectHeaderGroups } from '@vue-pivot/table'
 import { usePivotSheet } from '../composables/use-pivot-sheet'
 import { useGridVirtualizer } from '../composables/use-grid-virtualizer'
@@ -75,6 +76,7 @@ const hierarchyType = computed(() => state.value.options.hierarchyType ?? 'grid'
 
 const rowCount = computed(() => viewport.value.rowCount)
 const columnCount = computed(() => viewport.value.columnCount)
+const isTableSheet = computed(() => getSheetType(state.value.dataCfg) === 'table')
 
 const grid = useGridVirtualizer({
   scrollElement: scrollEl,
@@ -315,7 +317,10 @@ defineExpose({
     </div>
     <div
       class="vp-sheet"
-      :class="{ 'is-loading': loading || status === 'stale' }"
+      :class="{
+        'is-loading': loading || status === 'stale',
+        'is-table': isTableSheet,
+      }"
       role="grid"
       :aria-busy="loading || undefined"
       :aria-rowcount="rowCount"
@@ -324,7 +329,7 @@ defineExpose({
       @keydown="onKeydown"
     >
       <div v-if="loading" class="vp-sheet-loading" aria-live="polite">加载中…</div>
-      <PivotCorner :height="headerHeight" label="Fields">
+      <PivotCorner v-if="!isTableSheet" :height="headerHeight" label="Fields">
         <template #corner-cell>
           <slot name="corner-cell" />
         </template>
@@ -344,6 +349,7 @@ defineExpose({
       </PivotColHeader>
 
       <PivotRowHeader
+        v-if="!isTableSheet"
         :rows="viewport.getRows()"
         :scroll-top="grid.scrollTop.value"
         :total-height="grid.totalHeight.value"

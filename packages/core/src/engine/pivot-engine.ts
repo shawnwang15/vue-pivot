@@ -4,7 +4,7 @@ import type { PivotCommand } from '../types'
 import type { PivotState } from '../state/pivot-state'
 import { createInitialState } from '../state/pivot-state'
 import { reducePivotState } from '../commands/reduce'
-import { buildDimTreeFromRecords } from './dim-tree'
+import { buildDimTreeFromRecords, createDimTree } from './dim-tree'
 import { createCube, indexRecords, ingestPreAggregated, invalidateCube } from './cube'
 import { applyPreFilters, applyTopN, sortRecords } from './filter-sort'
 import { createPivotViewport, type PivotViewport, type ViewportContext } from '../viewport/pivot-viewport'
@@ -17,8 +17,11 @@ import {
 } from '../datasource/pivot-data-source'
 import { WorkerExecutor, createWorkerRequest } from '../worker/pivot-worker'
 import {
+  assertValidSheetCfg,
   getDataKind,
+  getSheetType,
   isAggregatedDataCfg,
+  isTableSheet,
   normalizeMeasures,
   type AggregatedSubTotalRecord,
   type PivotRecord,
@@ -55,6 +58,7 @@ export class PivotEngine {
   private autoFetch: boolean
 
   constructor(opts: PivotEngineOptions = {}) {
+    if (opts.dataCfg) assertValidSheetCfg(opts.dataCfg)
     this.state = createInitialState(opts.dataCfg, opts.options)
     this.dataSource = opts.dataSource ?? new LocalDataSource(this.state.records)
     this.queryController = createQueryController()
@@ -98,12 +102,14 @@ export class PivotEngine {
   }
 
   private viewportContext(): ViewportContext {
+    const sheetType = getSheetType(this.state.dataCfg)
     return {
       rowTree: this.state.rowTree,
       colTree: this.state.colTree,
       cube: this.state.cube,
       serverCells: this.state.serverCells,
       dataKind: getDataKind(this.state.dataCfg),
+      sheetType,
       records: this.state.records,
       measures: this.state.measures,
       valueInCols: this.state.dataCfg.fields.valueInCols !== false,
@@ -115,7 +121,7 @@ export class PivotEngine {
       columnOrder: this.state.columnUI.order,
       pinnedColumns: this.state.columnUI.pinned,
       postFilters:
-        getDataKind(this.state.dataCfg) === 'aggregated'
+        sheetType === 'table' || getDataKind(this.state.dataCfg) === 'aggregated'
           ? []
           : this.state.filters.filter((f) => f.postAggregation),
     }
@@ -194,6 +200,30 @@ export class PivotEngine {
     }
   }
 
+  private rebuildTable(): void {
+    let records = this.state.dataCfg.data ?? this.state.records
+    records = applyPreFilters(records, this.state.filters)
+    // Table sheet sorts by display field (alpha); ignore measure-method TopN
+    const tableSort = this.state.sort.map((s) => ({
+      ...s,
+      method: 'alpha' as const,
+      measure: undefined,
+    }))
+    records = sortRecords(records, tableSort)
+
+    this.state = {
+      ...this.state,
+      records,
+      rowTree: createDimTree(),
+      colTree: createDimTree(),
+      cube: createCube(),
+      serverCells: createServerCellStore(),
+      measures: [],
+      status: 'success',
+      error: null,
+    }
+  }
+
   private rebuildRaw(full: boolean): void {
     let records = this.state.dataCfg.data ?? this.state.records
     records = applyPreFilters(records, this.state.filters)
@@ -260,6 +290,27 @@ export class PivotEngine {
   }
 
   private rebuild(full: boolean): void {
+    try {
+      assertValidSheetCfg(this.state.dataCfg)
+    } catch (err) {
+      this.state = {
+        ...this.state,
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err),
+        records: [],
+        measures: [],
+        rowTree: createDimTree(),
+        colTree: createDimTree(),
+        cube: createCube(),
+        serverCells: createServerCellStore(),
+      }
+      return
+    }
+
+    if (isTableSheet(this.state.dataCfg)) {
+      this.rebuildTable()
+      return
+    }
     if (getDataKind(this.state.dataCfg) === 'aggregated') {
       this.rebuildAggregated()
       return
@@ -284,7 +335,9 @@ export class PivotEngine {
         return this.state
       }
     } else if (invalidate === 'cube') {
-      invalidateCube(this.state.cube, 'all')
+      if (!isTableSheet(this.state.dataCfg)) {
+        invalidateCube(this.state.cube, 'all')
+      }
       this.viewport = createPivotViewport(this.viewportContext())
     } else if (invalidate === 'layout') {
       if (

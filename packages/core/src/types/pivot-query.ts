@@ -5,6 +5,7 @@ import type {
   FieldName,
   MeasureField,
   PivotRecord,
+  SheetType,
 } from './data-cfg'
 import type { FilterSpec, HierarchyType, SortSpec, TopNSpec, TotalsOptions } from './options'
 
@@ -21,6 +22,8 @@ export interface PivotQuery {
   queryId: string
   /** Data shape expected by the consumer after this query */
   dataKind: DataKind
+  /** Layout mode; table = flat detail sheet */
+  sheetType: SheetType
   axes: {
     rows: string[]
     columns: string[]

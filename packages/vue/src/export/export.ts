@@ -1,4 +1,5 @@
 import type { PivotEngine } from '@vue-pivot/core'
+import { getSheetType } from '@vue-pivot/core'
 
 export interface ExportOptions {
   formatted?: boolean
@@ -9,8 +10,9 @@ export function exportToCsv(engine: PivotEngine, options: ExportOptions = {}): s
   const vp = engine.getViewport()
   const rows = vp.getRows()
   const cols = vp.getColumns()
+  const isTable = getSheetType(engine.getState().dataCfg) === 'table'
   const lines: string[] = []
-  const header = ['', ...cols.map((c) => c.label)]
+  const header = isTable ? cols.map((c) => c.label) : ['', ...cols.map((c) => c.label)]
   lines.push(header.map(csvEscape).join(','))
   for (const row of rows) {
     if (!options.includeTotals && (row.kind === 'grandTotal' || row.kind === 'subTotal')) continue
@@ -18,7 +20,7 @@ export function exportToCsv(engine: PivotEngine, options: ExportOptions = {}): s
       const cell = vp.getCell(row.index, col.index)
       return options.formatted === false ? String(cell.value ?? '') : cell.formatted
     })
-    lines.push([row.label, ...cells].map(csvEscape).join(','))
+    lines.push((isTable ? cells : [row.label, ...cells]).map(csvEscape).join(','))
   }
   return lines.join('\n')
 }
@@ -33,13 +35,18 @@ export function exportToExcelXml(engine: PivotEngine, options: ExportOptions = {
   const vp = engine.getViewport()
   const rows = vp.getRows()
   const cols = vp.getColumns()
+  const isTable = getSheetType(engine.getState().dataCfg) === 'table'
   const rowXml: string[] = []
+  const headerLabels = isTable ? cols.map((c) => c.label) : ['', ...cols.map((c) => c.label)]
   rowXml.push(
-    `<Row>${['', ...cols.map((c) => c.label)].map((v) => `<Cell><Data ss:Type="String">${escapeXml(v)}</Data></Cell>`).join('')}</Row>`,
+    `<Row>${headerLabels.map((v) => `<Cell><Data ss:Type="String">${escapeXml(v)}</Data></Cell>`).join('')}</Row>`,
   )
   for (const row of rows) {
     if (!options.includeTotals && (row.kind === 'grandTotal' || row.kind === 'subTotal')) continue
-    const cells = [`<Cell><Data ss:Type="String">${escapeXml(row.label)}</Data></Cell>`]
+    const cells: string[] = []
+    if (!isTable) {
+      cells.push(`<Cell><Data ss:Type="String">${escapeXml(row.label)}</Data></Cell>`)
+    }
     for (const col of cols) {
       const cell = vp.getCell(row.index, col.index)
       const text = options.formatted === false ? String(cell.value ?? '') : cell.formatted
@@ -50,11 +57,12 @@ export function exportToExcelXml(engine: PivotEngine, options: ExportOptions = {
     }
     rowXml.push(`<Row>${cells.join('')}</Row>`)
   }
+  const sheetName = isTable ? 'Table' : 'Pivot'
   return `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Worksheet ss:Name="Pivot"><Table>
+<Worksheet ss:Name="${sheetName}"><Table>
 ${rowXml.join('\n')}
 </Table></Worksheet></Workbook>`
 }

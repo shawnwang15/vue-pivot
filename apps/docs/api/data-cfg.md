@@ -6,14 +6,16 @@
 type DataCfg = RawDataCfg | AggregatedDataCfg
 ```
 
-通过 `dataKind` 区分两种模式：
+通过 `dataKind` 区分**数据形态**，通过 `sheetType` 区分**布局形态**：
 
-| 模式 | `dataKind` | 含义 |
+| 模式 | 字段 | 含义 |
 | --- | --- | --- |
-| 明细（默认） | `'raw'` 或省略 | 明细行，由库本地交叉聚合 |
-| 权威交叉结果 | `'aggregated'` | 已交叉聚合的宽表，库只建维树并渲染 |
+| 明细输入（默认） | `dataKind: 'raw'` 或省略 | 明细行，由库本地交叉聚合 |
+| 权威交叉结果 | `dataKind: 'aggregated'` | 已交叉聚合的宽表，库只建维树并渲染 |
+| 透视布局（默认） | `sheetType: 'pivot'` 或省略 | 交叉透视 |
+| 明细表布局 | `sheetType: 'table'` | 扁平明细表；`columns` 为展示列，不做聚合 |
 
-更完整的 aggregated 契约见 [Aggregated Mode](/guide/aggregated-mode)。
+更完整的契约见 [Aggregated Mode](/guide/aggregated-mode) 与 [明细表 Table](/guide/table-sheet)。
 
 ---
 
@@ -106,11 +108,31 @@ meta: [
 
 | 属性 | 类型 | 必填 | 用途 |
 | --- | --- | --- | --- |
-| `dataKind` | `'raw'` | 否 | 显式声明明细模式 |
+| `dataKind` | `'raw'` | 否 | 显式声明明细输入 |
+| `sheetType` | `'pivot' \| 'table'` | 否 | 布局；`table` 为扁平明细表（见下） |
 | `fields` | `PivotFields` | 是 | 字段布局 |
 | `meta` | `FieldMeta[]` | 否 | 字段元数据 |
 | `data` | `PivotRecord[]` | 否 | 明细行；每行是维度 + 度量的键值对象 |
-| `preAggregated` | `PreAggregatedCell[]` | 否 | 可选预聚合格子，按维路径注入；**仅 raw** |
+| `preAggregated` | `PreAggregatedCell[]` | 否 | 可选预聚合格子，按维路径注入；**仅 raw + pivot** |
+
+### `sheetType: 'table'`
+
+扁平明细表：每条 `data` 一行，`fields.columns` 为展示列。要求 `rows` / `values` 为空，且不可与 `dataKind: 'aggregated'` 同用。详见 [明细表 Table](/guide/table-sheet)。
+
+```ts
+const dataCfg: RawDataCfg = {
+  sheetType: 'table',
+  fields: {
+    rows: [],
+    columns: ['category', 'region', 'sales'],
+    values: [],
+  },
+  data: [
+    { category: 'Furniture', region: 'East', sales: 100 },
+    { category: 'Furniture', region: 'East', sales: 50 },
+  ],
+}
+```
 
 ### `data`
 
@@ -237,6 +259,9 @@ fieldValues: {
 | `isAggregatedDataCfg(cfg)` | 是否为 aggregated |
 | `isRawDataCfg(cfg)` | 是否为 raw |
 | `getDataKind(cfg)` | 返回 `'raw' \| 'aggregated'` |
+| `getSheetType(cfg)` | 返回 `'pivot' \| 'table'` |
+| `isTableSheet(cfg)` | 是否为明细表布局 |
+| `assertValidSheetCfg(cfg)` | 校验 sheetType / dataKind / fields 组合，非法则抛错 |
 | `normalizeMeasures(values)` | 将 `MeasureInput[]` 规范为 `MeasureField[]` |
 | `listFieldCatalog(cfg)` | 列出已知字段名（data ∪ meta ∪ 已分区） |
 | `listUnassignedFields(cfg)` | 未分配到 rows/columns/values/filters 的字段 |
