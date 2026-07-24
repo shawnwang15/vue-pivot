@@ -24,6 +24,9 @@
   --vp-cell-bg-total: #eef3f9;
 
   --vp-grid-line: #c5d4e8; /* 与外边框统一，白底上清晰但不突兀 */
+  --vp-resizer-width: 5px;
+  --vp-resizer-color: transparent;
+  --vp-resizer-color-hover: var(--vp-accent);
   --vp-sheet-bg-top: #eef4fb;
   --vp-sheet-bg-bottom: #e7eef8;
 
@@ -151,6 +154,7 @@
 
 .vp-header-cell {
   box-sizing: border-box;
+  position: relative;
   border-right: 1px solid var(--vp-grid-line);
   border-bottom: 1px solid var(--vp-grid-line);
   padding: 0 8px;
@@ -159,6 +163,24 @@
   font-weight: 600;
   background: var(--vp-header-bg);
   height: var(--vp-row-height);
+}
+
+.vp-col-resizer {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: var(--vp-resizer-width, 5px);
+  cursor: col-resize;
+  user-select: none;
+  z-index: 3;
+  background: var(--vp-resizer-color, transparent);
+  transition: background 0.15s ease;
+}
+
+.vp-col-resizer:hover,
+.vp-col-resizer.is-active {
+  background: var(--vp-resizer-color-hover, var(--vp-accent));
 }
 
 .vp-row-cell {

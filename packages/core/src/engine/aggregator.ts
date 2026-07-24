@@ -1,3 +1,14 @@
+import Big from 'big.js'
+
+// Decimal places for division (avg) and rounding mode. Adjustable via configureAggregatorPrecision.
+Big.DP = 20
+Big.RM = Big.roundHalfUp
+
+export function configureAggregatorPrecision(opts: { dp?: number; rm?: number }): void {
+  if (opts.dp != null) Big.DP = opts.dp
+  if (opts.rm != null) Big.RM = opts.rm
+}
+
 export interface Aggregator<TInput = unknown, TState = unknown, TResult = unknown> {
   id: string
   init(): TState
@@ -6,8 +17,9 @@ export interface Aggregator<TInput = unknown, TState = unknown, TResult = unknow
   finalize(state: TState): TResult
 }
 
-export type SumState = { sum: number; count: number }
-export type AvgState = { sum: number; count: number }
+// Sum accumulates in Big for exact addition; count stays a plain integer.
+export type SumState = { sum: Big; count: number }
+export type AvgState = { sum: Big; count: number }
 export type CountState = { count: number }
 export type MinMaxState = { value: number | null }
 export type DistinctState = { values: Set<unknown> | unknown[] }
@@ -21,34 +33,34 @@ function toNumber(value: unknown, treatNullAsZero = false): number | null {
 
 export const sumAggregator: Aggregator<unknown, SumState, number> = {
   id: 'sum',
-  init: () => ({ sum: 0, count: 0 }),
+  init: () => ({ sum: new Big(0), count: 0 }),
   add(state, value) {
     const n = toNumber(value, true)
     if (n == null) return
-    state.sum += n
+    state.sum = state.sum.plus(n)
     state.count += 1
   },
   merge(state, partial) {
-    state.sum += partial.sum
+    state.sum = state.sum.plus(partial.sum)
     state.count += partial.count
   },
-  finalize: (state) => state.sum,
+  finalize: (state) => state.sum.toNumber(),
 }
 
 export const avgAggregator: Aggregator<unknown, AvgState, number | null> = {
   id: 'avg',
-  init: () => ({ sum: 0, count: 0 }),
+  init: () => ({ sum: new Big(0), count: 0 }),
   add(state, value) {
     const n = toNumber(value)
     if (n == null) return
-    state.sum += n
+    state.sum = state.sum.plus(n)
     state.count += 1
   },
   merge(state, partial) {
-    state.sum += partial.sum
+    state.sum = state.sum.plus(partial.sum)
     state.count += partial.count
   },
-  finalize: (state) => (state.count === 0 ? null : state.sum / state.count),
+  finalize: (state) => (state.count === 0 ? null : state.sum.div(state.count).toNumber()),
 }
 
 export const countAggregator: Aggregator<unknown, CountState, number> = {
@@ -139,6 +151,11 @@ export function serializeAggregatorState(id: string, state: unknown): unknown {
     const s = state as DistinctState
     return { values: s.values instanceof Set ? [...s.values] : s.values }
   }
+  // Big instances are not structured-cloneable; serialize sum to string.
+  if (id === 'sum' || id === 'avg') {
+    const s = state as SumState
+    return { sum: s.sum.toString(), count: s.count }
+  }
   return state
 }
 
@@ -146,6 +163,10 @@ export function deserializeAggregatorState(id: string, state: unknown): unknown 
   if (id === 'distinctCount') {
     const s = state as DistinctState
     return { values: new Set(s.values instanceof Set ? s.values : s.values) }
+  }
+  if (id === 'sum' || id === 'avg') {
+    const s = state as { sum: string | Big; count: number }
+    return { sum: s.sum instanceof Big ? s.sum : new Big(s.sum), count: s.count }
   }
   return state
 }

@@ -22,7 +22,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "big.js": "^6.2.2"
+  },
   "devDependencies": {
+    "@types/big.js": "^6.2.2",
     "typescript": "^5.8.3",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"

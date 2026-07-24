@@ -177,6 +177,12 @@ const onCellMouseUp = () => {
   emit('brushSelection', selection.value)
 }
 
+const resizeEnabled = computed(() => !!state.value.options?.interaction?.resize)
+
+const onColResize = ({ columnId, width }: { columnId: string; width: number }) => {
+  dispatch({ type: 'resizeColumn', columnId, width })
+}
+
 const onToggle = ({ path, expanded }: { path: string[]; expanded: boolean }) => {
   const cmd: PivotCommand = expanded
     ? { type: 'expand', axis: 'row', path }
@@ -342,6 +348,8 @@ defineExpose({
         :total-width="grid.totalWidth.value"
         :row-height="rowHeight"
         :col-start="grid.visibleColRange.value.start"
+        :resize-enabled="resizeEnabled"
+        @resize="onColResize"
       >
         <template #col-cell="slotProps">
           <slot name="col-cell" v-bind="slotProps" />

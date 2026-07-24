@@ -42,7 +42,7 @@ const dataCfg = ref<DataCfg>({
 const options = ref<PivotOptions>({
   hierarchyType: 'tree',
   defaultExpandDepth: 1,
-  interaction: { brushSelection: true, multiSelection: true },
+  interaction: { brushSelection: true, multiSelection: true, resize: true },
   totals: { row: { showGrandTotals: true }, column: { showGrandTotals: true } },
 })
 
